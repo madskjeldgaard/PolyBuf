@@ -10,6 +10,19 @@ TODO: Add a third class, PolyBuf, which recursively goes through an entire
 directory tree. BufFiles and BufFolders currently only work at the root level of
 the path supplied to their path argument.
 
+## Installation
+
+Add this to your SuperCollider extensions folder. 
+
+Find this folder by opening up SuperCollider and executing either `Platform.userExtensionDir` (recommended) or `Platform.systemExtensionDir`.
+
+This will post the path to your extension folder(s) in the post window. 
+
+Then, copy and paste this repo into it's own folder in your extensions folder.
+
+For more info: [Using Extensions](http://doc.sccode.org/Guides/UsingExtensions.html)
+
+
 ## Usage
 
 `BufFiles(server, path)`
@@ -22,7 +35,7 @@ Returns a dict of `Buffer`'s loaded with the audio files from the folders of aud
 
 Each folder's contents are accessible as an array of buffers at the dict key of the same name as the folder.
 
-Example: 
+## Example 
 ```
 b = BufFolders(s, "path/to/808/sample/pack");
 
