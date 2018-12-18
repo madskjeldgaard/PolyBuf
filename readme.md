@@ -12,30 +12,28 @@ the path supplied to their path argument.
 
 ## Installation
 
-Add this to your SuperCollider extensions folder. 
+Add this to your SuperCollider extensions folder.
 
-Find this folder by opening up SuperCollider and executing either `Platform.userExtensionDir` (recommended) or `Platform.systemExtensionDir`.
+In SuperCollider, evaluate the following code to install it as a quark: `Quarks.install("https://github.com/madskjeldgaard/PolyBuf.git");`
 
-This will post the path to your extension folder(s) in the post window. 
-
-Then, copy and paste this repo into it's own folder in your extensions folder.
-
-For more info: [Using Extensions](http://doc.sccode.org/Guides/UsingExtensions.html)
-
+For more info: [Using Quarks](http://doc.sccode.org/Guides/UsingQuarks.html)
 
 ## Usage
 
+See the help file s for more details
+
 `BufFiles(server, path)`
 
-Returns an array of `Buffer`'s loaded with the audio files from the root of the given path. 
+Returns an array of `Buffer`'s loaded with the audio files from the root of the given path.
 
 `BufFolders(server, path)`
 
-Returns a dict of `Buffer`'s loaded with the audio files from the folders of audio files at the given path. 
+Returns a dict of `Buffer`'s loaded with the audio files from the folders of audio files at the given path.
 
 Each folder's contents are accessible as an array of buffers at the dict key of the same name as the folder.
 
-## Example 
+## Example
+
 ```
 b = BufFolders(s, "path/to/808/sample/pack");
 
@@ -48,12 +46,10 @@ c = BufFiles(s, "path/to/808/sample/pack/808sd");
 
 c; // Now this is just an array of files from the 808sd folder above
 
-// Play using a pbind 
+// Play using a pbind
 Pbind(
     \instrument, \bufferPlayer, // (you need to make a bufferPlayer synth to make this work
     \buffer, Pxrand(b[\808bd], inf), // Randomly choose from the kick drum samples
     \dur, Pseq([0.25, 0.5, 0.25, 0.125, 0.125],inf) // A terrible rhythm
 ).play;
-
 ```
-
