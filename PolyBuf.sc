@@ -1,5 +1,6 @@
 // Create an array of buffers
-// Arguments: server, path
+// Arguments: server, path, channel
+// channel is optional, uses readChannel to load specified channel into buffer
 
 BufFiles {
 
@@ -29,12 +30,12 @@ BufFiles {
             "caf"
         ];
 
-        *new { arg server, path;
-            ^super.new.init(server, path);
+        *new { arg server, path, channel;
+            ^super.new.init(server, path, channel);
         }
 
-        init { arg server, path;
-            ^this.loadBuffersToArray(server, path);
+        init { arg server, path, channel;
+            ^this.loadBuffersToArray(server, path, channel);
         }
 
         checkHeader { |path|
@@ -43,20 +44,31 @@ BufFiles {
             ).notNil;
         }
 
-        loadBuffersToArray { arg server, path;
+        loadBuffersToArray { arg server, path, channel;
 
             // Iterate over all entries in the folder supplied by the path arg
             // And for all audio files, load the file into a buffer and put back
             // into the array
             var array = PathName(path).files.collect({|soundfile| 
                 this.checkHeader(soundfile.fullPath).if({
-                    Buffer.read(server, 
-                        soundfile.fullPath, 
-                        startFrame: 0, 
-                        numFrames: -1, 
-                        action: nil, 
-                        bufnum: nil 
-                    )
+                    if (channel.notNil) {
+                        Buffer.readChannel(server,
+                            soundfile.fullPath,
+                            startFrame: 0,
+                            numFrames: -1,
+                            action: nil,
+                            bufnum: nil,
+                            channels: [channel],
+                        )
+                    } {
+                        Buffer.read(server,
+                            soundfile.fullPath,
+                            startFrame: 0,
+                            numFrames: -1,
+                            action: nil,
+                            bufnum: nil
+                        )
+                    }
                 })
             });
 

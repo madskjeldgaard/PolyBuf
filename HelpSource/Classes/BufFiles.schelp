@@ -12,10 +12,14 @@ CLASSMETHODS::
 METHOD:: new
 
 ARGUMENT:: server
-( Server to load the buffers to)
+Server to load the buffers to
 
 ARGUMENT:: path
 Path to folder of sound files to load (string)
+
+ARGUMENT:: channel
+Optional - uses Buffer's readChannel method to load specified channel of audio file (for instance,
+for a folder of audio files with differing numbers of channels)
 
 
 INSTANCEMETHODS::
@@ -37,11 +41,15 @@ ARGUMENT:: server
 
 ARGUMENT:: path
 
+ARGUMENT:: channel
+
 METHOD:: loadBuffersToArray
 
 ARGUMENT:: server
 
 ARGUMENT:: path
+
+ARGUMENT:: channel
 
 returns:: Array
 
