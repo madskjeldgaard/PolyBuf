@@ -2,8 +2,8 @@
 // Arguments: server, path
 
 BufFiles {
-
-    var supportedHeaders = #[
+	
+    var <buffers, supportedHeaders = #[
             "aiff",
             "wav",
             "wave", 
@@ -29,13 +29,22 @@ BufFiles {
             "caf"
         ];
 
-        *new { arg server, path;
-            ^super.new.init(server, path);
+        *new { arg server, path, normalize=true;
+            ^super.new.init(server, path, normalize);
         }
 
-        init { arg server, path;
-            ^this.loadBuffersToArray(server, path);
+        init { arg server, path, normalize;
+			buffers = this.loadBuffersToArray(server, path, normalize);
+
+			^buffers
         }
+
+		// This is a workaround: 
+		// Implement it's own version of the .at method 
+		// to allow access to the buffer array whenever the fork is finished processing
+		at {|index|
+			^buffers[index]
+		}
 
         checkHeader { |path|
             ^supportedHeaders.indexOfEqual(
@@ -43,27 +52,51 @@ BufFiles {
             ).notNil;
         }
 
-        loadBuffersToArray { arg server, path;
+        loadBuffersToArray { arg server, path, normalized;
 
-            // Iterate over all entries in the folder supplied by the path arg
-            // And for all audio files, load the file into a buffer and put back
-            // into the array
-            var array = PathName(path).files.collect({|soundfile| 
-                this.checkHeader(soundfile.fullPath).if({
-                    Buffer.read(server, 
-                        soundfile.fullPath, 
-                        startFrame: 0, 
-                        numFrames: -1, 
-                        action: nil, 
-                        bufnum: nil 
-                    )
-                })
+            // Iterate over all entries in the folder supplied by the path 
+			// arg and select the files that seem to be audio files
+			var paths = PathName(path).files.select({|soundfile| 
+                this.checkHeader(soundfile.fullPath)
             });
 
-            // Clean up: The files found that aren't audio files will leave a
-            // slot in the array with the value 'nil'. This will remove those. 
-            ^array.reject({|item| item.isNil});
-        }
+			// And for all audio files, load the file into a buffer 
+			fork {
+				buffers = paths.collect{|soundfile|
+					// Wait for server to catch up
+					server.sync;
+
+					Buffer.read(server, 
+						soundfile.fullPath, 
+						startFrame: 0, 
+						numFrames: -1, 
+						action: nil, 
+					)
+				};
+
+				// Normalize buffers
+				server.sync;
+				buffers = if(normalized, { buffers.collect{|b| b.normalize} }, { buffers });
+
+				// Clean up: The files found that aren't audio files will leave a
+				// slot in the buffers array with the value 'nil'. This will remove those. 
+				server.sync;
+				buffers = buffers.reject({|item| item.isNil });
+
+				// Then, if some of the buffers for some reason don't have any frames in them, remove those as well
+				server.sync;
+				buffers = buffers.reject({|item| 
+					if(item.numFrames == 0, { 
+						"Buffer read from % is empty. It will be removed and freed".format(item.path).warn;
+						item.free;
+						true
+					}, {
+						false
+					})
+				});
+
+			}
+		}
     }
 
 BufFolders {
@@ -201,4 +234,3 @@ PolyBuf {
         }
 
 }
-*/ 
