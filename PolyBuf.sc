@@ -1,6 +1,3 @@
-// Create an array of buffers
-// Arguments: server, path
-
 BufFiles {
 	
     var <buffers, supportedHeaders = #[
@@ -29,12 +26,12 @@ BufFiles {
             "caf"
         ];
 
-        *new { arg server, path, normalize=true;
-            ^super.new.init(server, path, normalize);
+        *new { arg server, path, channel, normalize=true;
+            ^super.new.init(server, path, channel, normalize);
         }
 
-        init { arg server, path, normalize;
-			buffers = this.loadBuffersToArray(server, path, normalize);
+        init { arg server, path, channel, normalize;
+			buffers = this.loadBuffersToArray(server, path, channel, normalize);
 
 			^buffers
         }
@@ -52,7 +49,7 @@ BufFiles {
             ).notNil;
         }
 
-        loadBuffersToArray { arg server, path, normalized;
+        loadBuffersToArray { arg server, path, channel, normalized;
 
             // Iterate over all entries in the folder supplied by the path 
 			// arg and select the files that seem to be audio files
@@ -66,12 +63,24 @@ BufFiles {
 					// Wait for server to catch up
 					server.sync;
 
-					Buffer.read(server, 
-						soundfile.fullPath, 
-						startFrame: 0, 
-						numFrames: -1, 
-						action: nil, 
-					)
+					if (channel.notNil) {
+                        Buffer.readChannel(server,
+                            soundfile.fullPath,
+                            startFrame: 0,
+                            numFrames: -1,
+                            action: nil,
+                            bufnum: nil,
+                            channels: [channel],
+                        )
+                    } {
+                        Buffer.read(server,
+                            soundfile.fullPath,
+                            startFrame: 0,
+                            numFrames: -1,
+                            action: nil,
+                            bufnum: nil
+                        )
+                    }
 				};
 
 				// Normalize buffers
@@ -234,3 +243,4 @@ PolyBuf {
         }
 
 }
+*/
