@@ -1,164 +1,164 @@
 BufFiles {
-	
-    var <buffers, supportedHeaders = #[
-            "aiff",
-            "wav",
-            "wave", 
-            "riff",
-            "sun", 
-            "next",
-            "sd2",
-            "ircam",
-            "raw",
-            "mat4",
-            "mat5",
-            "paf",
-            "svx",
-            "nist",
-            "voc",
-            "w64",
-            "pvf",
-            "xi",
-            "htk",
-            "sds",
-            "avr",
-            "flac",
-            "caf"
-        ];
+	var <buffers, 
+	supportedHeaders = #[
+		"aiff",
+		"wav",
+		"wave", 
+		"riff",
+		"sun", 
+		"next",
+		"sd2",
+		"ircam",
+		"raw",
+		"mat4",
+		"mat5",
+		"paf",
+		"svx",
+		"nist",
+		"voc",
+		"w64",
+		"pvf",
+		"xi",
+		"htk",
+		"sds",
+		"avr",
+		"flac",
+		"caf"
+	];
 
-        *new { arg server, path, channel, normalize=true;
-            ^super.new.init(server, path, channel, normalize);
-        }
+	*new { arg server, path, channel, normalize=true;
+		^super.new.init(server, path, channel, normalize);
+	}
 
-        init { arg server, path, channel, normalize;
-			buffers = this.loadBuffersToArray(server, path, channel, normalize);
+	init { arg server, path, channel, normalize;
+		buffers = this.loadBuffersToArray(server, path, channel, normalize);
 
-			^buffers
-        }
+		^buffers
+	}
 
-		// This is a workaround: 
-		// Implement it's own version of the .at method 
-		// to allow access to the buffer array whenever the fork is finished processing
-		at {|index|
-			^buffers[index]
+	// This is a workaround: 
+	// Implement it's own version of the .at method 
+	// to allow access to the buffer array whenever the fork is finished processing
+	at {|index|
+		^buffers[index]
+	}
+
+	checkHeader { |path|
+		^supportedHeaders.indexOfEqual(
+			PathName(path).extension.toLower
+		).notNil;
+	}
+
+	loadBuffersToArray { arg server, path, channel, normalized;
+
+		// Iterate over all entries in the folder supplied by the path 
+		// arg and select the files that seem to be audio files
+		var paths = PathName(path).files.select({|soundfile| 
+			this.checkHeader(soundfile.fullPath.postln)
+		});
+
+		// And for all audio files, load the file into a buffer 
+		fork {
+			buffers = paths.collect{|soundfile|
+				// Wait for server to catch up
+				server.sync;
+
+				if (channel.notNil) {
+					Buffer.readChannel(server,
+						soundfile.fullPath,
+						startFrame: 0,
+						numFrames: -1,
+						action: nil,
+						bufnum: nil,
+						channels: [channel],
+					)
+				} {
+					Buffer.read(server,
+						soundfile.fullPath,
+						startFrame: 0,
+						numFrames: -1,
+						action: nil,
+						bufnum: nil
+					)
+				}
+			};
+
+			// Normalize buffers
+			server.sync;
+			buffers = if(normalized, { buffers.collect{|b| b.normalize} }, { buffers });
+
+			// Clean up: The files found that aren't audio files will leave a
+			// slot in the buffers array with the value 'nil'. This will remove those. 
+			server.sync;
+			buffers = buffers.reject({|item| item.isNil });
+
+			// Then, if some of the buffers for some reason don't have any frames in them, remove those as well
+			server.sync;
+			buffers = buffers.reject({|item| 
+				if(item.numFrames == 0, { 
+					"Buffer read from % is empty. It will be removed and freed".format(item.path).warn;
+					item.free;
+					true
+				}, {
+					false
+				})
+			});
+
 		}
-
-        checkHeader { |path|
-            ^supportedHeaders.indexOfEqual(
-                PathName(path).extension.toLower
-            ).notNil;
-        }
-
-        loadBuffersToArray { arg server, path, channel, normalized;
-
-            // Iterate over all entries in the folder supplied by the path 
-			// arg and select the files that seem to be audio files
-			var paths = PathName(path).files.select({|soundfile| 
-                this.checkHeader(soundfile.fullPath)
-            });
-
-			// And for all audio files, load the file into a buffer 
-			fork {
-				buffers = paths.collect{|soundfile|
-					// Wait for server to catch up
-					server.sync;
-
-					if (channel.notNil) {
-                        Buffer.readChannel(server,
-                            soundfile.fullPath,
-                            startFrame: 0,
-                            numFrames: -1,
-                            action: nil,
-                            bufnum: nil,
-                            channels: [channel],
-                        )
-                    } {
-                        Buffer.read(server,
-                            soundfile.fullPath,
-                            startFrame: 0,
-                            numFrames: -1,
-                            action: nil,
-                            bufnum: nil
-                        )
-                    }
-				};
-
-				// Normalize buffers
-				server.sync;
-				buffers = if(normalized, { buffers.collect{|b| b.normalize} }, { buffers });
-
-				// Clean up: The files found that aren't audio files will leave a
-				// slot in the buffers array with the value 'nil'. This will remove those. 
-				server.sync;
-				buffers = buffers.reject({|item| item.isNil });
-
-				// Then, if some of the buffers for some reason don't have any frames in them, remove those as well
-				server.sync;
-				buffers = buffers.reject({|item| 
-					if(item.numFrames == 0, { 
-						"Buffer read from % is empty. It will be removed and freed".format(item.path).warn;
-						item.free;
-						true
-					}, {
-						false
-					})
-				});
-
-			}
-		}
-    }
+	}
+}
 
 BufFolders {
-        
-        var dict; 
 
-        *new { arg server, path;
+	var dict; 
 
-            ^super.new.init(server, path);
+	*new { arg server, path;
 
-        }
+		^super.new.init(server, path);
 
-        init { arg server, path;
+	}
 
-            dict = Dictionary.new;
+	init { arg server, path;
 
-            ^this.loadDirTree(dict, server, path);
+		dict = Dictionary.new;
 
-        }
-        
-        loadRootFiles {|dict, server, path|
-            // If the root of the folder contains files, add them to the key \root
+		^this.loadDirTree(dict, server, path);
 
-            if(PathName(path).files.size > 0, 
-                dict.add(\root -> BufFiles(server, path) );
-            )
+	}
 
-        }
+	loadRootFiles {|dict, server, path|
+		// If the root of the folder contains files, add them to the key \root
 
-        loadDirTree {|dict, server, path|
+		if(PathName(path).files.size > 0, 
+		dict.add(\root -> BufFiles(server, path) );
+	)
 
-            PathName(path).folders.collect{|item|
+}
 
-                // Load folder of sounds into an array at dict key of the folder name
-                item.isFolder.if{ 
-                    dict.add(item.folderName.asSymbol -> BufFiles.new(server, item.fullPath));
-                };
+loadDirTree {|dict, server, path|
 
-                // If it's a file
-                item.isFile.if{ ("file! " ++ item).postln };
+	PathName(path).folders.collect{|item|
 
-            };
+		// Load folder of sounds into an array at dict key of the folder name
+		item.isFolder.if{ 
+			dict.add(item.folderName.asSymbol -> BufFiles.new(server, item.fullPath));
+		};
 
-            this.loadRootFiles(dict, server, path);
+		// If it's a file
+		item.isFile.if{ ("file! " ++ item).postln };
 
-            // Info
-            dict.keysValuesDo{|k,v| "Key % contains % buffers now".format(k,v.size).postln};
+	};
 
-            ^dict;
+	this.loadRootFiles(dict, server, path);
 
-        }        
+	// Info
+	dict.keysValuesDo{|k,v| "Key % contains % buffers now".format(k,v.size).postln};
 
-    }
+	^dict;
+
+}        
+
+	}
 
 // TODO
 /*
