@@ -7,6 +7,10 @@ DESCRIPTION::
 An easy way to load a bunch of audio files into easily accessible collections of buffers in Supercollider. Great for sample libraries.
 This class loads the sound files at the root of a folder into the array, ignoring any subfolders
 
+Supported file types: aiff, wav, wave, riff, sun, next, sd2, ircam, raw, mat4, mat5, paf, svx, nist, voc, w64, pvf, xi, htk, sds, avr, flac, caf, upper and lowercase versions are supported. It will automatically skip all files that are illegal formats.
+
+If the server is not booted, it will wait for hte server to boot before loading the files.
+
 CLASSMETHODS::
 
 METHOD:: new
@@ -17,34 +21,14 @@ ARGUMENT:: server
 ARGUMENT:: path
 Path to folder of sound files to load (string)
 
+ARGUMENT::channel
+Only load this channel if set to something (the loader will then internally use Buffer.readChannel in stead of Buffer.read).
+
+ARGUMENT::normalize
+Set true, all buffers will be normalized.
+
 
 INSTANCEMETHODS::
-
-METHOD:: checkHeader
-
-Check the extension of a file to see if it's an audio file.
-Supported file types: aiff, wav, wave, riff, sun, next, sd2, ircam, raw, mat4, mat5, paf, svx, nist, voc, w64, pvf, xi, htk, sds, avr, flac, caf
-
-ARGUMENT:: path
-The path of the file to check (as a string)
-
-returns:: Boolean
-
-
-METHOD:: init
-
-ARGUMENT:: server
-
-ARGUMENT:: path
-
-METHOD:: loadBuffersToArray
-
-ARGUMENT:: server
-
-ARGUMENT:: path
-
-returns:: Array
-
 
 EXAMPLES::
 
@@ -64,7 +48,10 @@ c; // Now this is just an array of files from the 808sd folder above
 // Play using a pbind 
 Pbind(
     \instrument, \bufferPlayer, // (you need to make a bufferPlayer synth to make this work
-    \buffer, Pxrand(b[\808bd], inf), // Randomly choose from the kick drum samples
+	\buffer, Pseq([
+		b[\808bd].asPxrand(1),
+		c.asPseq(1)
+	],inf), // Randomly choose from the kick drum samples
     \dur, Pseq([0.25, 0.5, 0.25, 0.125, 0.125],inf) // A terrible rhythm
 ).play;
 
