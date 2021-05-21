@@ -27,12 +27,20 @@ BufFiles {
 	];
 
 	*new { arg server, path, channel, normalize=true;
-		^super.new.init(server, path, channel, normalize);
+		if(server.hasBooted, { 
+			^super.new.init(server, path, channel, normalize);
+		}, {
+
+			"Server has not been booted. % will not return before booted".format(this.class.name).warn;
+			server.waitForBoot{
+				^super.new.init(server, path, channel, normalize);
+			}
+		})
+
 	}
 
 	init { arg server, path, channel, normalize;
 		buffers = this.loadBuffersToArray(server, path, channel, normalize);
-
 		^buffers
 	}
 
@@ -41,6 +49,10 @@ BufFiles {
 	// to allow access to the buffer array whenever the fork is finished processing
 	at {|index|
 		^buffers[index]
+	}
+
+	numBuffers{
+		^buffers.size
 	}
 
 	checkHeader { |path|
@@ -106,59 +118,112 @@ BufFiles {
 
 		}
 	}
+
+	// Pattern convenience functions
+	asPseq{|repeats=1, offset=0|
+		^Pseq(buffers, repeats, offset)
+	}
+
+	asPrand{|repeats=1|
+		^Prand(buffers, repeats)
+	}
+
+	asPxrand{|repeats=1|
+		^Pxrand(buffers, repeats)
+	}
+
+	asPwalk{|stepPattern, directionPattern=1, startPos=0|
+		^Pwalk(buffers, stepPattern, directionPattern, startPos)
+	}
+
+	asPshuf{|repeats=1|
+		^Pshuf(buffers, repeats)
+	}
+
+	// Demand rate convenience functions
+	asDseq{|repeats=1, offset=0|
+		^Dseq(buffers, repeats, offset)
+	}
+
+	asDrand{|repeats=1|
+		^Drand(buffers, repeats)
+	}
+
+	asDxrand{|repeats=1|
+		^Dxrand(buffers, repeats)
+	}
+
+	asDshuf{|repeats=1|
+		^Dshuf(buffers, repeats)
+	}
 }
 
 BufFolders {
 
-	var dict; 
+	var <dict; 
 
-	*new { arg server, path;
+	*new { arg server, path, normalize=true;
 
-		^super.new.init(server, path);
-
-	}
-
-	init { arg server, path;
-
-		dict = Dictionary.new;
-
-		^this.loadDirTree(dict, server, path);
+		^super.new.init(server, path, normalize);
 
 	}
 
-	loadRootFiles {|dict, server, path|
-		// If the root of the folder contains files, add them to the key \root
+	init { arg server, path, normalize;
+		if(server.hasBooted, { 
+			dict = Dictionary.new;
+			this.loadDirTree(dict, server, path, normalize);
+		}, {
+			"Server has not been booted... aborting buffer loading".error;
+		});
+	}
 
-		if(PathName(path).files.size > 0, 
-		dict.add(\root -> BufFiles(server, path) );
-	)
+	at{|key|
+		^dict[key]
+	}
+
+	loadDirTree {|dict, server, path, normalize|
+		fork{
+			PathName(path).folders.collect{|item|
+				server.sync;
+
+				// Load folder of sounds into an array at dict key of the folder name
+				item.isFolder.if{ 
+					var dictkey = item.folderName.asSymbol;
+
+					"Found folder: %".format(item).postln;
+					dict.add(
+						dictkey -> BufFiles.new(server: server, path: item.fullPath, normalize: normalize)
+					);
+				};
+
+				// If it's a file
+				// item.isFile.if{ ("file! " ++ item).postln };
+
+			};
+
+			server.sync;
+
+			// Load files at the root of the folder if any
+			this.loadRootFiles(dict, server, path, normalize);
+
+			server.sync;
+			this.info();
+		}
+	}        
+
+	info{
+		// Info
+		dict.keysValuesDo{|k,v| "Key % contains % buffers".format(k,v.buffers.size).postln};
+	}
+
+	// If the root of the folder contains files, add them to the key \root
+	loadRootFiles {|dict, server, path, normalize|
+		if(PathName(path).files.size > 0, {
+			dict.add(\root -> BufFiles(server, path, normalize: normalize))
+		})
+	}
 
 }
-
-loadDirTree {|dict, server, path|
-
-	PathName(path).folders.collect{|item|
-
-		// Load folder of sounds into an array at dict key of the folder name
-		item.isFolder.if{ 
-			dict.add(item.folderName.asSymbol -> BufFiles.new(server, item.fullPath));
-		};
-
-		// If it's a file
-		item.isFile.if{ ("file! " ++ item).postln };
-
-	};
-
-	this.loadRootFiles(dict, server, path);
-
-	// Info
-	dict.keysValuesDo{|k,v| "Key % contains % buffers now".format(k,v.size).postln};
-
-	^dict;
-
-}        
-
-	}
 
 // TODO
 /*
