@@ -1,10 +1,10 @@
 (
     \name:           "PolyBuf",
-    \path:           "PolyBuf", // almost always the same as the quark name
     \summary:        "An easy way to load a bunch of audio files into easily accessible collections of buffers in Supercollider. Great for sample libraries.",
     \author:         "Mads Kjeldgaard",
+	\version: "1.0.0",
     \since:          "2018",
     \schelp:         "BufFolders",
-    \ext_dependancy: "SC3 plugins",
+    \ext_dependancy: nil,
     \url:            "https://github.com/madskjeldgaard/PolyBuf",
 )
