@@ -26,20 +26,24 @@ BufFiles {
 		"caf"
 	];
 
-	*new { arg server, path, channel, normalize=true;
+	var action, verbosity;
+
+	*new { arg server, path, channel, normalize=true, actionWhenDone, verbose=true;
 		if(server.hasBooted, { 
-			^super.new.init(server, path, channel, normalize);
+			^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
 		}, {
 
 			"Server has not been booted. % will not return before booted".format(this.class.name).warn;
-			server.waitForBoot{
-				^super.new.init(server, path, channel, normalize);
+			server.doWhenBooted{
+				^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
 			}
 		})
 
 	}
 
-	init { arg server, path, channel, normalize;
+	init { arg server, path, channel, normalize, actionWhenDone, verbose;
+		verbosity = verbose;
+		action = actionWhenDone;
 		buffers = this.loadBuffersToArray(server, path, channel, normalize);
 		^buffers
 	}
@@ -66,46 +70,66 @@ BufFiles {
 		// Iterate over all entries in the folder supplied by the path 
 		// arg and select the files that seem to be audio files
 		var paths = PathName(path).files.select({|soundfile| 
-			this.checkHeader(soundfile.fullPath.postln)
+			this.checkHeader(soundfile.fullPath)
+		});
+
+		verbosity.if({  
+			"Loading % soundfiles from % \n".format(paths.size, path).postln 
 		});
 
 		// And for all audio files, load the file into a buffer 
 		fork {
-			buffers = paths.collect{|soundfile|
-				// Wait for server to catch up
-				server.sync;
+			var condition = Condition.new;
 
-				if (channel.notNil) {
+			server.sync;
+
+			buffers = paths.collect{|soundfile|
+				var buffer;
+				var thisPath = soundfile.fullPath;
+				// Wait for server to catch up
+
+				buffer = if (channel.notNil) {
 					Buffer.readChannel(server,
-						soundfile.fullPath,
-						startFrame: 0,
-						numFrames: -1,
-						action: nil,
-						bufnum: nil,
+						thisPath,
+						// startFrame: 0,
+						// numFrames: -1,
+						// bufnum: nil,
 						channels: [channel],
+						action: {
+							condition.unhang
+						}
 					)
 				} {
 					Buffer.read(server,
-						soundfile.fullPath,
-						startFrame: 0,
-						numFrames: -1,
-						action: nil,
-						bufnum: nil
+						thisPath,
+						// startFrame: 0,
+						// numFrames: -1,
+						// bufnum: nil,
+						action: {
+							condition.unhang
+						}
 					)
-				}
+				};
+
+				condition.hang;
+				verbosity.if({
+					"LOADED: %".format(thisPath).postln;
+				});
+
+				buffer
 			};
 
 			// Normalize buffers
-			server.sync;
+			// server.sync;
 			buffers = if(normalized, { buffers.collect{|b| b.normalize} }, { buffers });
 
 			// Clean up: The files found that aren't audio files will leave a
 			// slot in the buffers array with the value 'nil'. This will remove those. 
-			server.sync;
+			// server.sync;
 			buffers = buffers.reject({|item| item.isNil });
 
 			// Then, if some of the buffers for some reason don't have any frames in them, remove those as well
-			server.sync;
+			// server.sync;
 			buffers = buffers.reject({|item| 
 				if(item.numFrames == 0, { 
 					"Buffer read from % is empty. It will be removed and freed".format(item.path).warn;
@@ -116,6 +140,10 @@ BufFiles {
 				})
 			});
 
+
+			server.sync;
+			// Call done action
+			action.value();
 		}
 	}
 
