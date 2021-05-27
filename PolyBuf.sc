@@ -188,15 +188,16 @@ BufFiles {
 
 BufFolders {
 
-	var <dict; 
+	var <dict, action; 
 
-	*new { arg server, path, normalize=true;
-		^super.new.init(server, path, normalize);
+	*new { arg server, path, normalize=true, actionWhenDone;
+		^super.new.init(server, path, normalize, actionWhenDone);
 
 	}
 
-	init { arg server, path, normalize;
+	init { arg server, path, normalize, actionWhenDone;
 		dict = IdentityDictionary.new;
+		action = actionWhenDone;
 
 		if(server.hasBooted, { 
 			this.loadDirTree(dict, server, path, normalize);
@@ -214,10 +215,12 @@ BufFolders {
 	}
 
 	loadDirTree {|dict, server, path, normalize|
-		var condition = Condition.new;
-		var folders =PathName(path).folders; 
 		fork{
+			var condition = Condition.new;
+			var folders = PathName(path).folders; 
+
 			server.sync;
+
 			"Loading folders: ".postln;
 			folders.do{|f| ("\t" ++ f.fullPath).postln };
 
@@ -233,6 +236,8 @@ BufFolders {
 					});
 
 					condition.hang;
+
+					"Done loading folder %".format(item.folderName).postln;
 				};
 
 				// If it's a file
@@ -243,25 +248,16 @@ BufFolders {
 			server.sync;
 
 			// Load files at the root of the folder if any
-			this.loadRootFiles(dict, server, path, normalize, actionWhenDone: { condition.unhang });
-			condition.hang;
+			this.loadRootFiles(dict, server, path, normalize);
 
-			server.sync;
-			this.info();
+			action.value();
 		}
 	}        
 
-	info{
-		// Info
-		dict.keysValuesDo{|k,v| "Key % contains % buffers".format(k,v.buffers.size).postln};
-	}
-
 	// If the root of the folder contains files, add them to the key \root
-	loadRootFiles {|dict, server, path, normalize, actionWhenDone|
+	loadRootFiles {|dict, server, path, normalize|
 		if(PathName(path).files.size > 0, {
-			dict.add(\root -> BufFiles(server, path, normalize: normalize, actionWhenDone: actionWhenDone))
-		}, {
-			actionWhenDone.value()
+			dict.add(\root -> BufFiles(server, path, normalize: normalize))
 		})
 	}
 
