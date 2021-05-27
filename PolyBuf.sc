@@ -191,17 +191,21 @@ BufFolders {
 	var <dict; 
 
 	*new { arg server, path, normalize=true;
-
 		^super.new.init(server, path, normalize);
 
 	}
 
 	init { arg server, path, normalize;
+		dict = IdentityDictionary.new;
+
 		if(server.hasBooted, { 
-			dict = Dictionary.new;
 			this.loadDirTree(dict, server, path, normalize);
 		}, {
 			"Server has not been booted... aborting buffer loading".error;
+			server.doWhenBooted{
+				this.loadDirTree(dict, server, path, normalize);
+			}
+
 		});
 	}
 
@@ -210,18 +214,25 @@ BufFolders {
 	}
 
 	loadDirTree {|dict, server, path, normalize|
+		var condition = Condition.new;
+		var folders =PathName(path).folders; 
 		fork{
-			PathName(path).folders.collect{|item|
-				server.sync;
+			server.sync;
+			"Loading folders: ".postln;
+			folders.do{|f| ("\t" ++ f.fullPath).postln };
+
+			folders.do{|item|
 
 				// Load folder of sounds into an array at dict key of the folder name
 				item.isFolder.if{ 
 					var dictkey = item.folderName.asSymbol;
 
-					"Found folder: %".format(item).postln;
-					dict.add(
-						dictkey -> BufFiles.new(server: server, path: item.fullPath, normalize: normalize)
-					);
+					"Found folder: %\n".format(item).postln;
+					dict[dictkey] = BufFiles.new(server: server, path: item.fullPath, normalize: normalize, actionWhenDone: {
+						condition.unhang
+					});
+
+					condition.hang;
 				};
 
 				// If it's a file
@@ -232,7 +243,8 @@ BufFolders {
 			server.sync;
 
 			// Load files at the root of the folder if any
-			this.loadRootFiles(dict, server, path, normalize);
+			this.loadRootFiles(dict, server, path, normalize, actionWhenDone: { condition.unhang });
+			condition.hang;
 
 			server.sync;
 			this.info();
@@ -245,9 +257,11 @@ BufFolders {
 	}
 
 	// If the root of the folder contains files, add them to the key \root
-	loadRootFiles {|dict, server, path, normalize|
+	loadRootFiles {|dict, server, path, normalize, actionWhenDone|
 		if(PathName(path).files.size > 0, {
-			dict.add(\root -> BufFiles(server, path, normalize: normalize))
+			dict.add(\root -> BufFiles(server, path, normalize: normalize, actionWhenDone: actionWhenDone))
+		}, {
+			actionWhenDone.value()
 		})
 	}
 
