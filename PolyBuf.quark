@@ -2,7 +2,7 @@
     \name:           "PolyBuf",
     \summary:        "An easy way to load a bunch of audio files into easily accessible collections of buffers in Supercollider. Great for sample libraries.",
     \author:         "Mads Kjeldgaard",
-	\version: "1.1.0",
+	\version: "1.2.0",
     \since:          "2018",
     \schelp:         "BufFiles",
     \ext_dependancy: nil,
