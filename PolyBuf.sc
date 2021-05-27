@@ -257,7 +257,10 @@ BufFolders {
 	// If the root of the folder contains files, add them to the key \root
 	loadRootFiles {|dict, server, path, normalize|
 		if(PathName(path).files.size > 0, {
-			dict.add(\root -> BufFiles(server, path, normalize: normalize))
+			var cond = Condition.new;
+			"Found files in root of folder, putting them in \root ".postln;
+			dict.add(\root -> BufFiles(server, path, normalize: normalize, actionWhenDone: { cond.unhang }));
+			cond.hang;
 		})
 	}
 
