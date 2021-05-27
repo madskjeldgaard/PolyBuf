@@ -29,9 +29,6 @@ Boolean. Set to true, this will normalize all buffers
 ARGUMENT::actionWhenDone
 a Function that will called when the class is done loading.
 
-ARGUMENT::verbose
-Boolean. 
-
 INSTANCEMETHODS::
 
 EXAMPLES::
