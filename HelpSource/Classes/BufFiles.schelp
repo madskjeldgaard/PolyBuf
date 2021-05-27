@@ -27,6 +27,11 @@ Only load this channel if set to something (the loader will then internally use 
 ARGUMENT::normalize
 Set true, all buffers will be normalized.
 
+ARGUMENT::actionWhenDone
+a Function that will called when the class is done loading.
+
+ARGUMENT::verbose
+Boolean. 
 
 INSTANCEMETHODS::
 
