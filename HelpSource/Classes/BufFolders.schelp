@@ -31,6 +31,20 @@ a Function that will called when the class is done loading.
 
 INSTANCEMETHODS::
 
+METHOD:: gui
+
+Open up a gui wit an overview of all folders loaded. Each folder is represented by a
+LINK::Classes/BufFiles#gui:: - see that help file for more information.
+
+code::
+c = BufFolders.new(server:s,
+    path:"~/sounds/drumz",
+    normalize:true,
+    actionWhenDone: { defer{ c.gui } }
+);
+
+::
+
 EXAMPLES::
 
 code::
@@ -46,7 +60,7 @@ c = BufFiles(s, "path/to/808/sample/pack/808sd");
 
 c; // Now this is just an array of files from the 808sd folder above
 
-// Play using a pbind 
+// Play using a pbind
 Pbind(
     \instrument, \bufferPlayer, // (you need to make a bufferPlayer synth to make this work
     \buffer, b[\808bd].asPxrand(inf), // Randomly choose from the kick drum samples
@@ -54,4 +68,3 @@ Pbind(
 ).play;
 
 ::
-

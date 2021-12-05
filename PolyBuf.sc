@@ -1,11 +1,11 @@
 BufFiles {
-	var <buffers, 
+	var <buffers,
 	supportedHeaders = #[
 		"aiff",
 		"wav",
-		"wave", 
+		"wave",
 		"riff",
-		"sun", 
+		"sun",
 		"next",
 		"sd2",
 		"ircam",
@@ -24,12 +24,16 @@ BufFiles {
 		"avr",
 		"flac",
 		"caf"
-	];
+	],
+    <folderName;
+
+    // GUI stuff
+    var <>selected, <>selectionAction;
 
 	var action, verbosity;
 
 	*new { arg server, path, channel, normalize=true, actionWhenDone, verbose=true;
-		if(server.hasBooted, { 
+		if(server.hasBooted, {
 			^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
 		}, {
 
@@ -42,14 +46,16 @@ BufFiles {
 	}
 
 	init { arg server, path, channel, normalize, actionWhenDone, verbose;
+        selected = [];
+        selectionAction = selectionAction ? {};
 		verbosity = verbose;
 		action = actionWhenDone;
 		buffers = this.loadBuffersToArray(server, path, channel, normalize);
 		^buffers
 	}
 
-	// This is a workaround: 
-	// Implement it's own version of the .at method 
+	// This is a workaround:
+	// Implement it's own version of the .at method
 	// to allow access to the buffer array whenever the fork is finished processing
 	at {|index|
 		^buffers[index]
@@ -67,17 +73,18 @@ BufFiles {
 
 	loadBuffersToArray { arg server, path, channel, normalized;
 
-		// Iterate over all entries in the folder supplied by the path 
+		// Iterate over all entries in the folder supplied by the path
 		// arg and select the files that seem to be audio files
-		var paths = PathName(path).files.select({|soundfile| 
+		var paths = PathName(path).files.select({|soundfile|
 			this.checkHeader(soundfile.fullPath)
 		});
+        folderName = PathName(path).fileName;
 
-		verbosity.if({  
-			"Loading % soundfiles from % \n".format(paths.size, path).postln 
+		verbosity.if({
+			"Loading % soundfiles from % \n".format(paths.size, path).postln
 		});
 
-		// And for all audio files, load the file into a buffer 
+		// And for all audio files, load the file into a buffer
 		fork {
 			var condition = Condition.new;
 
@@ -124,14 +131,14 @@ BufFiles {
 			buffers = if(normalized, { buffers.collect{|b| b.normalize} }, { buffers });
 
 			// Clean up: The files found that aren't audio files will leave a
-			// slot in the buffers array with the value 'nil'. This will remove those. 
+			// slot in the buffers array with the value 'nil'. This will remove those.
 			// server.sync;
 			buffers = buffers.reject({|item| item.isNil });
 
 			// Then, if some of the buffers for some reason don't have any frames in them, remove those as well
 			// server.sync;
-			buffers = buffers.reject({|item| 
-				if(item.numFrames == 0, { 
+			buffers = buffers.reject({|item|
+				if(item.numFrames == 0, {
 					"Buffer read from % is empty. It will be removed and freed".format(item.path).warn;
 					item.free;
 					true
@@ -140,12 +147,54 @@ BufFiles {
 				})
 			});
 
-
 			server.sync;
 			// Call done action
 			action.value();
 		}
 	}
+
+    gui{
+        var win = Window.new(name: "PolyBufGUI");
+        var preview = false;
+        var bufNames = this.buffers.collect{|buf, bufIndex|
+            PathName(buf.path).fileName -> bufIndex
+        }.asDict;
+
+        var titlebar = StaticText.new(win).string_(folderName).font_(Font.default.bold_(true));
+        var helpText = StaticText.new(win).string_("Click soundfile name to preview.\nMake selection using ctrl and shift.\nSelected buffers are available in .selected of this object.");
+        var list = ListView.new(win)
+        .items_(
+            bufNames.keys.collect{|k| k.asString }.asArray
+        ).action_({|obj|
+            var index = obj.value;
+            var fn = list.items[index];
+            var polybufIndex = bufNames.at(fn);
+
+            if(preview, {
+                this.at(polybufIndex).play;
+            });
+        })
+        .selectionMode_(\extended)
+        .selectionAction_({|obj|
+            var indices = obj.selection;
+            var fns = indices.collect{|index| list.items[index] };
+            var polybufIndices = fns.collect{|fn| bufNames.at(fn) };
+            this.selected = polybufIndices.collect{|index| this.at(index)};
+            this.selectionAction.value(this.selected);
+        });
+
+        var previewbutton = Button.new(win)
+        .states_([["preview", Color.black, Color.red], ["preview",Color.black, Color.green]])
+        .action_({|obj|
+            preview = obj.value.asBoolean;
+        });
+
+        var close = Button.new(win).states_([["close"]]).action_({ win.close });
+        var layout = VLayout.new(titlebar, helpText,previewbutton, list, close);
+
+        win.layout = layout;
+        win.front();
+    }
 
 	// Pattern convenience functions
 	asPseq{|repeats=1, offset=0|
@@ -188,7 +237,7 @@ BufFiles {
 
 BufFolders {
 
-	var <dict, action; 
+	var <dict, action, <folderName;
 
 	*new { arg server, path, normalize=true, actionWhenDone;
 		^super.new.init(server, path, normalize, actionWhenDone);
@@ -199,7 +248,7 @@ BufFolders {
 		dict = IdentityDictionary.new;
 		action = actionWhenDone;
 
-		if(server.hasBooted, { 
+		if(server.hasBooted, {
 			this.loadDirTree(dict, server, path, normalize);
 		}, {
 			"Server has not been booted... aborting buffer loading".error;
@@ -217,8 +266,9 @@ BufFolders {
 	loadDirTree {|dict, server, path, normalize|
 		fork{
 			var condition = Condition.new;
-			var folders = PathName(path).folders; 
+			var folders = PathName(path).folders;
 
+            folderName = PathName(path).fileName;
 			server.sync;
 
 			"Loading folders: ".postln;
@@ -227,7 +277,7 @@ BufFolders {
 			folders.do{|item|
 
 				// Load folder of sounds into an array at dict key of the folder name
-				item.isFolder.if{ 
+				item.isFolder.if{
 					var dictkey = item.folderName.asSymbol;
 
 					"Found folder: %\n".format(item).postln;
@@ -252,7 +302,7 @@ BufFolders {
 
 			action.value();
 		}
-	}        
+	}
 
 	// If the root of the folder contains files, add them to the key \root
 	loadRootFiles {|dict, server, path, normalize|
@@ -264,13 +314,37 @@ BufFolders {
 		})
 	}
 
+    gui{
+        var win = Window.new(name: this.folderName);
+        var titlebar = StaticText.new(win).string_(folderName).font_(Font.default.bold_(true));
+        var helpText = StaticText.new(win).string_("Click folder name to preview and make selections.");
+
+        var buttons = this.dict.keys.asArray.collect{|buffilesName|
+            var key = buffilesName;
+            var buffiles = this.at(key);
+            Button.new(win)
+            .states_([[key]])
+            .action_({
+                buffiles.gui
+            });
+        };
+
+        var close = Button.new(win).states_([["close"]]).action_({ win.close });
+        var objects = [titlebar] ++ [helpText] ++ buttons ++ [nil] ++ [close];
+        var layout = VLayout(*objects);
+
+        win.layout = layout;
+
+        win.front();
+    }
+
 }
 
 // TODO
 /*
 PolyBuf {
-    
-        var dict; 
+
+        var dict;
 
         *new { arg server, path;
 
@@ -293,31 +367,31 @@ PolyBuf {
         loadContentsOfDir { arg d, server, path;
 
             case
-                {this.containsFilesAndFolders(path)}{ 
-                    var files_at_root = BufFiles.new(server, path); 
+                {this.containsFilesAndFolders(path)}{
+                    var files_at_root = BufFiles.new(server, path);
                     var subdict = BufFolders.new(server, path);
 
-                    var cwd = PathName(path).folderName.asSymbol; 
+                    var cwd = PathName(path).folderName.asSymbol;
 
                     subdict.add(\root -> files_at_root);
 
                     d.add(cwd -> subdict);
 
-                    "files and folders !".postln; 
+                    "files and folders !".postln;
 
                 }
-                {this.containsFolders(path)}{ 
+                {this.containsFolders(path)}{
                     var folders = BufFolders.new(server, path);
-                    var cwd = PathName(path).folderName.asSymbol; 
+                    var cwd = PathName(path).folderName.asSymbol;
 
                     d.add(cwd -> folders);
 
-                    "folders!".postln; 
+                    "folders!".postln;
 
                 }
-                {this.containsFiles(path)}{ 
+                {this.containsFiles(path)}{
                     var files = BufFiles.new(server, PathName(path).entries.files);
-                    var cwd = PathName(path).folderName.asSymbol; 
+                    var cwd = PathName(path).folderName.asSymbol;
 
                     d.add(cwd -> files);
 
@@ -334,17 +408,17 @@ PolyBuf {
 
         containsFolders { arg path;
             var result = PathName(path).folders.size > 0;
-            
+
             ("Supplied path contains subdirectories: " ++ result).postln;
-            
+
             ^result
         }
-        
+
         containsFiles { arg path;
             var result = PathName(path).files.size > 0;
-            
+
             ("Supplied path contains files at root: " ++ result).postln;
-            
+
             ^result
         }
 
