@@ -75,7 +75,7 @@ Pbind(
     \instrument, \polybuf_sampler,
     \rate, Pwhite(0.5,1.0),
     \buffer, Pdefn(\polySelected, Pseq(b.selected, inf)),
-    \dur, Pfunc{|ev| ev[\buffer].duration * ev[\rate].reciprocal }
+    \dur, Pfunc{|ev| ev[\buffer].duration * ev[\rate].abs.reciprocal }
 ).play;
 )
 ::

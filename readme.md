@@ -1,5 +1,7 @@
 # PolyBuf
 
+[See this video for a quick demo.](https://vimeo.com/manage/videos/653384557)
+
 An easy way to load a bunch of audio files into easily accessible collections of
 buffers in Supercollider. Great for sample libraries.
 
