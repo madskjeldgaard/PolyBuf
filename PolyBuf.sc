@@ -338,6 +338,24 @@ BufFolders {
 }
 
 // TODO
+// PolyBuf : IdentityDictionary {
+//     var <folders;
+//
+//     *new{ arg server, path, channel, normalize=true, actionWhenDone, verbose=true;
+//         ^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
+//     }
+//
+//     init { arg server, path, channel, normalize, actionWhenDone, verbose;
+//         // From parent class
+//         dictionary = this.newInternalNode;
+//
+//         if(path.class != PathName && path.isKindOf(String), { path = PathName(path) });
+//         folders = path.folders;
+//     }
+//
+// }
+
+// TODO
 /*
 PolyBuf {
 
