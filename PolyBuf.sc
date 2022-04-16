@@ -67,18 +67,20 @@ BufFiles {
 
 	checkHeader { |path|
 		^supportedHeaders.indexOfEqual(
-			PathName(path).extension.toLower
+			path.extension.toLower
 		).notNil;
 	}
 
 	loadBuffersToArray { arg server, path, channel, normalized;
+        var paths;
 
 		// Iterate over all entries in the folder supplied by the path
 		// arg and select the files that seem to be audio files
-		var paths = PathName(path).files.select({|soundfile|
+        path = if(path.class != PathName, {PathName(path)}, { path });
+		paths = path.files.select({|soundfile|
 			this.checkHeader(soundfile.fullPath)
 		});
-        folderName = PathName(path).fileName;
+        folderName = path.fileName.postln;
 
 		verbosity.if({
 			"Loading % soundfiles from % \n".format(paths.size, path).postln
