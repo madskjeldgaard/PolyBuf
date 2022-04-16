@@ -52,6 +52,10 @@ BufFiles {
 		^buffers[index]
 	}
 
+    size{
+        ^this.numBuffers
+    }
+
 	numBuffers{
 		^buffers.size
 	}
