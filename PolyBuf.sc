@@ -33,16 +33,7 @@ BufFiles {
 	var action, verbosity;
 
 	*new { arg server, path, channel, normalize=true, actionWhenDone, verbose=true;
-		if(server.hasBooted, {
-			^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
-		}, {
-
-			"Server has not been booted. % will not return before booted".format(this.class.name).warn;
-			server.doWhenBooted{
-				^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
-			}
-		})
-
+		^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
 	}
 
 	init { arg server, path, channel, normalize, actionWhenDone, verbose;
@@ -87,7 +78,7 @@ BufFiles {
 		});
 
 		// And for all audio files, load the file into a buffer
-		fork {
+        server.waitForBoot{
 			var condition = Condition.new;
 
 			server.sync;
