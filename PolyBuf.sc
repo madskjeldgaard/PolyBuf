@@ -73,7 +73,7 @@ BufFiles {
 		// arg and select the files that seem to be audio files
         path = if(path.class != PathName, {PathName(path)}, { path });
 		paths = path.files.select({|soundfile|
-			this.checkHeader(soundfile.fullPath)
+			this.checkHeader(soundfile)
 		});
         folderName = path.fileName.postln;
 
