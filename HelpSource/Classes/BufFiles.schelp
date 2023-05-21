@@ -39,6 +39,16 @@ METHOD::findAll
 Search this collection of buffers and find all buffers that that contain the
 string in their filename (without extension).
 
+code::
+
+// A folder containing a bunch of samples
+b = BufFiles.new(s, "~/Desktop/crazysounds");
+
+// Only the files that contain the word "hihat"
+c = b.findAll("hihat");
+
+::
+
 ARGUMENT::fileNamesThatContainString
 A string that will be used for fuzzy finding. It is used in a .matchRegexp so it
 can contain regular expression stuff.
