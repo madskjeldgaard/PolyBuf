@@ -35,6 +35,14 @@ Boolean.
 
 INSTANCEMETHODS::
 
+METHOD::findAll
+Search this collection of buffers and find all buffers that that contain the
+string in their filename (without extension).
+
+ARGUMENT::fileNamesThatContainString
+A string that will be used for fuzzy finding. It is used in a .matchRegexp so it
+can contain regular expression stuff.
+
 METHOD::gui
 
 Open up a gui for this object.
@@ -93,7 +101,7 @@ b[\root]; // Contains all of the audio files at the root level (ie outside of th
 
 c = BufFiles(s, "path/to/808/sample/pack/808sd");
 
-c; // Now this is just an array of files from the 808sd folder above
+c.buffers; // Now this is just an array of files from the 808sd folder above
 
 // Play using a pbind
 Pbind(

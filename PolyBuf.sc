@@ -33,16 +33,28 @@ BufFiles {
 	var action, verbosity;
 
 	*new { arg server, path, channel, normalize=true, actionWhenDone, verbose=true;
-		^super.new.init(server, path, channel, normalize, actionWhenDone, verbose);
+		^super.new.init(server, path, channel, normalize, actionWhenDone, verbose, nil);
 	}
 
-	init { arg server, path, channel, normalize, actionWhenDone, verbose;
+    // Create an instance from an existing array of loaded Buffers
+    *newFromBufferArray{ arg bufferArray;
+        ^super.new.init(preloadedBuffers: bufferArray);
+    }
+
+	init { arg server, path, channel, normalize, actionWhenDone, verbose, preloadedBuffers;
         selected = [];
         selectionAction = selectionAction ? {};
 		verbosity = verbose;
 		action = actionWhenDone;
-		buffers = this.loadBuffersToArray(server, path, channel, normalize);
-		^buffers
+
+        // Allow passing in an array of preloaded buffers
+        preloadedBuffers.isNil.if({
+            buffers = this.loadBuffersToArray(server, path, channel, normalize);
+        }, {
+            buffers = preloadedBuffers;
+        });
+
+		^this
 	}
 
 	// This is a workaround:
@@ -230,6 +242,25 @@ BufFiles {
 	asDshuf{|repeats=1|
 		^Dshuf(buffers, repeats)
 	}
+
+    // Search collection and return a subset of buffers
+    findAll{|fileNamesThatContainString|
+        var subCollection = Array.new;
+
+        fileNamesThatContainString.isNil.not.if{
+
+            buffers.do{|buffer|
+                var path = PathName(buffer.path).fileNameWithoutExtension;
+                var isMatch = fileNamesThatContainString.asString.matchRegexp(path);
+                if(isMatch, {
+                    subCollection = subCollection.add(buffer)
+                })
+            }
+        };
+
+        ^this.class.newFromBufferArray(subCollection)
+    }
+
 }
 
 BufFolders {
@@ -245,65 +276,67 @@ BufFolders {
 		dict = IdentityDictionary.new;
 		action = actionWhenDone;
 
-		if(server.hasBooted, {
-			this.loadDirTree(dict, server, path, normalize);
-		}, {
-			"Server has not been booted... aborting buffer loading".error;
-			server.doWhenBooted{
-				this.loadDirTree(dict, server, path, normalize);
-			}
+        path = if(path.class != PathName, {PathName(path)}, { path });
 
-		});
+        server.doWhenBooted{
+            this.loadDirTree(server, path, normalize);
+        }
+
 	}
 
 	at{|key|
 		^dict[key]
 	}
 
-	loadDirTree {|dict, server, path, normalize|
-		fork{
-			var condition = Condition.new;
-			var folders = PathName(path).folders;
+    loadDirTree {|server, path, normalize|
+        var condition = Condition.new;
+        var folders = path.deepFolders;
 
-            folderName = PathName(path).fileName;
-			server.sync;
+        folderName = path.fileName;
+        server.sync;
 
-			"Loading folders: ".postln;
-			folders.do{|f| ("\t" ++ f.fullPath).postln };
+        "Loading folders: ".postln;
+        folders.do{|f| ("\t" ++ f.fullPath).postln };
 
-			folders.do{|item|
+        folders.do{|item|
 
-				// Load folder of sounds into an array at dict key of the folder name
-				item.isFolder.if{
-					var dictkey = item.folderName.asSymbol;
+            // Load folder of sounds into an array at dict key of the folder name
+            // item.isFolder.if{
+            //     item.folders.do{|fold|
+                    var dictkey = item.folderName.asSymbol;
+                    if(item.files.size != 0, {
+                        "Found folder: %\n".format(dictkey).postln;
 
-					"Found folder: %\n".format(item).postln;
-					dict[dictkey] = BufFiles.new(server: server, path: item.fullPath, normalize: normalize, actionWhenDone: {
-						condition.unhang
-					});
+                        "It contains: % files\n".format(item.files.size).postln;
 
-					condition.hang;
+                        dict[dictkey] = BufFiles.new(server: server, path: item, normalize: normalize, actionWhenDone: {
+                            condition.unhang
+                        });
 
-					"Done loading folder %".format(item.folderName).postln;
-				};
+                        condition.hang;
 
-				// If it's a file
-				// item.isFile.if{ ("file! " ++ item).postln };
+                        "Done loading folder %".format(item.folderName).postln;
 
-			};
+                    })
+            //     }
+            // };
 
-			server.sync;
+            // If it's a file
+            // item.isFile.if{ ("file! " ++ item).postln };
 
-			// Load files at the root of the folder if any
-			this.loadRootFiles(dict, server, path, normalize);
+        };
 
-			action.value();
-		}
-	}
+        server.sync;
+
+        // Load files at the root of the folder if any
+        this.loadRootFiles(dict, server, path, normalize);
+
+        action.value();
+    }
 
 	// If the root of the folder contains files, add them to the key \root
 	loadRootFiles {|dict, server, path, normalize|
-		if(PathName(path).files.size > 0, {
+		if(path.files.size > 0, {
 			var cond = Condition.new;
 			"Found files in root of folder, putting them in \root ".postln;
 			dict.add(\root -> BufFiles(server, path, normalize: normalize, actionWhenDone: { cond.unhang }));
