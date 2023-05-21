@@ -243,6 +243,14 @@ BufFiles {
 		^Dshuf(buffers, repeats)
 	}
 
+    choose{
+        ^buffers.choose
+    }
+
+    playRandom{
+        ^this.choose.play
+    }
+
     // Search collection and return a subset of buffers
     findAll{|fileNamesThatContainString|
         var subCollection = Array.new;
