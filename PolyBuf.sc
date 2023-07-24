@@ -41,6 +41,10 @@ BufFiles {
         ^super.new.init(preloadedBuffers: bufferArray);
     }
 
+    *newFromListOfPaths{ arg server, pathList, channel, normalize=true, actionWhenDone, verbose=true;
+        ^super.new.init(server, pathList, channel, normalize, actionWhenDone, verbose, nil);
+    }
+
 	init { arg server, path, channel, normalize, actionWhenDone, verbose, preloadedBuffers;
         selected = [];
         selectionAction = selectionAction ? {};
@@ -83,11 +87,21 @@ BufFiles {
 
 		// Iterate over all entries in the folder supplied by the path
 		// arg and select the files that seem to be audio files
-        path = if(path.class != PathName, {PathName(path)}, { path });
-		paths = path.files.select({|soundfile|
-			this.checkHeader(soundfile)
-		});
-        folderName = path.fileName.postln;
+        if(path.isKindOf(Array), {
+
+            paths = path.collect{|pathIn| PathName(pathIn) }.select{|pathIn|
+                this.checkHeader(pathIn)
+            };
+
+            folderName = "buffiles";
+        }, {
+            path = if(path.class != PathName, {PathName(path)}, { path });
+            paths = path.files.select({|soundfile|
+                this.checkHeader(soundfile)
+            });
+
+            folderName = path.fileName;
+        });
 
 		verbosity.if({
 			"Loading % soundfiles from % \n".format(paths.size, path).postln
