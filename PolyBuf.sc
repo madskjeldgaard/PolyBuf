@@ -68,6 +68,14 @@ BufFiles {
 		^buffers[index]
 	}
 
+    first{
+        ^buffers.first
+    }
+
+    last{
+        ^buffers.last
+    }
+
     size{
         ^this.numBuffers
     }
@@ -281,6 +289,13 @@ BufFiles {
         };
 
         ^this.class.newFromBufferArray(subCollection)
+    }
+
+    // Returns the first occurence
+    find{|fileNameThatContainsString|
+        var subCollection = this.findAll(fileNameThatContainsString);
+
+        ^subCollection.first
     }
 
 }
