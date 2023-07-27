@@ -1,3 +1,9 @@
+PolyBuf : QuarkInterface{
+    *packageName{
+        ^'PolyBuf'
+    }
+}
+
 BufFiles {
 	var <buffers,
 	supportedHeaders = #[
