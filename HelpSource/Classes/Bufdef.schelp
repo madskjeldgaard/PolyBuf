@@ -4,7 +4,7 @@ categories:: PolyBuf
 related:: Classes/Pdef
 
 DESCRIPTION::
-This class is a def-style version of LINK::#Classes/BufFiles::. It's main
+This class is a def-style version of LINK::Classes/BufFiles::. It's main
 usecase is to allow making a global namespace of Bufdefs with all loaded files
 and make sure they are only loaded once (unless explicitly reloaded with new
 buffers).
