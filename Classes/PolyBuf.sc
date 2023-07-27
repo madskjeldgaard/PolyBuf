@@ -45,6 +45,11 @@ BufFiles {
         ^super.new.init(server, pathList, channel, normalize, actionWhenDone, verbose, nil);
     }
 
+    clear{
+        buffers.do{|buf| buf.free };
+        buffers = [];
+    }
+
 	init { arg server, path, channel, normalize, actionWhenDone, verbose, preloadedBuffers;
         selected = [];
         selectionAction = selectionAction ? {};
