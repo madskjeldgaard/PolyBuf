@@ -1,0 +1,23 @@
+TITLE:: PolyBuf
+summary:: Main interface of Polybuf
+categories:: PolyBuf
+related:: Classes/Monolithic
+
+DESCRIPTION::
+The main interface for PolyBuf. Not very useful for end users but for
+developers.
+
+CLASSMETHODS::
+
+METHOD:: packageName
+
+returns:: Name of package
+
+
+INSTANCEMETHODS::
+
+
+EXAMPLES::
+
+code::
+::

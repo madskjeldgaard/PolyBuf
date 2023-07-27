@@ -1,0 +1,102 @@
+TITLE:: Bufdef
+summary:: Def-style interface for BufFiles
+categories:: PolyBuf
+related:: Classes/Pdef
+
+DESCRIPTION::
+This class is a def-style version of LINK::#Classes/BufFiles::. It's main
+usecase is to allow making a global namespace of Bufdefs with all loaded files
+and make sure they are only loaded once (unless explicitly reloaded with new
+buffers).
+
+CLASSMETHODS::
+
+METHOD:: hasGlobalDictionary
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: all
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: initClass
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: at
+(describe method here)
+
+ARGUMENT:: key
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: new
+(describe method here)
+
+ARGUMENT:: key
+(describe argument here)
+
+ARGUMENT:: server
+(describe argument here)
+
+ARGUMENT:: path
+(describe argument here)
+
+ARGUMENT:: channel
+(describe argument here)
+
+ARGUMENT:: normalize
+(describe argument here)
+
+ARGUMENT:: actionWhenDone
+(describe argument here)
+
+ARGUMENT:: verbose
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+
+INSTANCEMETHODS::
+
+METHOD:: replace
+Clear this buffiles instance and replace it with new buffers that are then
+loaded.
+
+ARGUMENT:: server
+
+ARGUMENT:: pathOrListOfPaths
+Can be either a path (a string) or a list of paths as strings (allowing to pick
+and choose different files for one collection)
+
+ARGUMENT:: channel
+Which channels to load. An array of channels or nil to load all.
+
+ARGUMENT:: normalize
+Normalize buffers after load
+
+ARGUMENT:: actionWhenDone
+Call action when finished loading
+
+ARGUMENT:: verbose
+Be verbose. boolean
+
+ARGUMENT:: preloadedBuffers
+Supply with preloaded buffers if you want to avoid loading new ones.
+
+returns:: A Bufdef instance.
+
+EXAMPLES::
+
+code::
+// Load some buffers
+Bufdef(\yo, s, "~/test-sounds");
+
+// Play a random one
+Bufdef(\yo).choose.play
+
+::
