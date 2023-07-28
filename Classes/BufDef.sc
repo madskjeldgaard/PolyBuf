@@ -1,5 +1,6 @@
 Bufdef : BufFiles{
     var <key, <>bufFiles;
+    var <>inPath;
 
     classvar <>all;
 
@@ -7,7 +8,13 @@ Bufdef : BufFiles{
         var res = this.at(key);
         if(res.isNil) {
             res = super.new(server, path, channel, normalize, actionWhenDone, verbose).prAdd(key);
+            res.inPath = path;
         } {
+            // Trigger a new BufFiles if the path is different
+            if(path != res.inPath) {
+                res.clear();
+                res = super.new(server, path, channel, normalize, actionWhenDone, verbose).prAdd(key);
+            }
         };
 
         ^res
