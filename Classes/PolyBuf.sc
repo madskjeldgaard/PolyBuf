@@ -309,6 +309,10 @@ BufFiles {
         ^subCollection.first
     }
 
+
+    asSpec{
+        ^ArrayedSpec.new(array:buffers, default:0)
+    }
 }
 
 BufFolders {
